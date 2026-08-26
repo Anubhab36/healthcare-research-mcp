@@ -1,4 +1,3 @@
-cat > README.md <<'EOF'
 # Healthcare Research MCP Server
 
 A Model Context Protocol (MCP) server for structured healthcare research using real biomedical research sources.
