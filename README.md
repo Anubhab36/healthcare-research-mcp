@@ -1,187 +1,118 @@
 # Healthcare Research MCP Server
 
-A Model Context Protocol (MCP) server for structured healthcare research using real biomedical research sources.
+A healthcare research system built around the **Model Context Protocol (MCP)** that provides structured access to biomedical research from **PubMed** and **ClinicalTrials.gov**.
 
-The server provides MCP tools for searching PubMed and ClinicalTrials.gov, an MCP prompt for generating structured research briefs, and an MCP resource containing research and safety guidelines.
+The project exposes healthcare research capabilities as MCP tools, prompts, and resources, while also providing a lightweight web interface for direct human use.
 
 ---
 
-## 1. Project Overview
+## Overview
 
-The Healthcare Research MCP Server provides a standardized interface between AI assistants and healthcare research sources.
+Healthcare research often requires searching multiple sources, comparing evidence, and preserving identifiers such as PMIDs and NCT IDs.
 
-Instead of requiring an AI application to implement separate integrations for every research database, the MCP server exposes healthcare research capabilities as reusable MCP tools.
+This project provides a single research interface that can:
 
-The current implementation integrates:
+- Search PubMed for biomedical research articles
+- Retrieve detailed PubMed article information
+- Search ClinicalTrials.gov for clinical studies
+- Combine evidence from multiple research sources
+- Rank ClinicalTrials.gov results using lightweight relevance scoring
+- Expose research capabilities through MCP
+- Provide a structured research brief prompt
+- Provide research methodology and safety guidelines as an MCP resource
+- Provide a browser-based web interface
+- Provide a standalone MCP demonstration client
+- Validate user input and handle external API failures
+- Preserve research identifiers for further review
+
+The system is designed for **research assistance**, not individualized medical decision-making.
+
+---
+
+## Key Features
+
+### PubMed
+
+The server provides:
+
+- `pubmed_search`
+- `pubmed_get_article`
+
+PubMed searches return structured article information such as:
+
+- PMID
+- Title
+- Authors
+- Journal
+- Publication date
+
+Article retrieval can provide additional information including available abstracts and DOI information.
+
+---
+
+### ClinicalTrials.gov
+
+The server provides:
+
+- `clinical_trials_search`
+
+Clinical trial results include:
+
+- NCT ID
+- Study title
+- Overall status
+- Study type
+- Conditions
+
+The implementation performs a lightweight relevance ranking after retrieving candidate studies from ClinicalTrials.gov.
+
+Query terms receive higher relevance when they occur in study titles, helping reduce unrelated results from broad searches.
+
+---
+
+### Multi-source Healthcare Research
+
+The server provides:
+
+- `healthcare_research`
+
+This combines research retrieval from:
 
 - PubMed
 - ClinicalTrials.gov
 
-The server can search both sources for a research question and return a combined evidence package.
+The result is returned as a structured evidence package that can be consumed by an MCP client or the web application.
+
+The workflow is deterministic rather than agentic. It follows predefined research steps instead of dynamically deciding which tools to use.
 
 ---
 
-## 2. Problem Statement
+## MCP Capabilities
 
-Healthcare research often requires information from multiple sources.
-
-A researcher may need to:
-
-1. Search biomedical literature.
-2. Retrieve individual research articles.
-3. Search registered clinical trials.
-4. Compare evidence across sources.
-5. Keep track of identifiers such as PMID and NCT numbers.
-6. Distinguish retrieved evidence from interpretation.
-
-Without a standardized interface, each AI application would need to implement these integrations independently.
-
-This project demonstrates how MCP can provide a reusable healthcare research interface.
-
----
-
-## 3. Why MCP?
-
-Model Context Protocol provides a standardized way for AI applications to interact with external tools, resources, and prompts.
-
-This project demonstrates three major MCP primitives:
+The project exposes three types of MCP capabilities.
 
 ### Tools
 
-Tools allow an MCP client or AI model to perform actions.
+The MCP server currently exposes four tools:
 
-Implemented tools:
-
-- `pubmed_search`
-- `pubmed_get_article`
-- `clinical_trials_search`
-- `healthcare_research`
-
-### Prompts
-
-Prompts provide reusable instructions for a specific workflow.
-
-Implemented prompt:
-
-- `research_brief`
-
-### Resources
-
-Resources provide contextual information that an MCP client can retrieve.
-
-Implemented resource:
-
-- `healthcare://research-guidelines`
+| Tool | Purpose |
+|---|---|
+| `pubmed_search` | Search PubMed for biomedical research |
+| `pubmed_get_article` | Retrieve detailed information for a PubMed article |
+| `clinical_trials_search` | Search ClinicalTrials.gov |
+| `healthcare_research` | Run a combined multi-source research workflow |
 
 ---
 
-## 4. Architecture
+### Prompt
 
-                    MCP CLIENT
-                        |
-                        v
-              Healthcare Research
-                  MCP Server
-                        |
-        +---------------+---------------+
-        |               |               |
-        v               v               v
-      Tools           Prompts        Resources
-        |               |               |
-        |               |               |
-        |        research_brief   research-guidelines
-        |
-   +----+---------------------+
-   |                          |
-   v                          v
- PubMed                ClinicalTrials.gov
-   |                          |
-   +------------+-------------+
-                |
-                v
-        Combined Evidence
-             Package
+The server exposes:
 
-The server separates evidence retrieval from interpretation.
+```text
+research_brief
+```
 
-The MCP server retrieves and structures research information. An AI client can then use that evidence together with the research prompt to produce a structured research brief.
-
----
-
-## 5. MCP Tools
-
-### `pubmed_search`
-
-Searches PubMed for biomedical research articles.
-
-Example query:
-
-artificial intelligence ECG
-
-Returns:
-
-- PMID
-- Title
-- Authors
-- Journal
-- Publication date
-
----
-
-### `pubmed_get_article`
-
-Retrieves detailed information for a PubMed article using its PMID.
-
-Example:
-
-PMID: 42642304
-
-The response can include:
-
-- PMID
-- Title
-- Journal
-- Authors
-- Publication date
-- DOI
-- Abstract when available
-
----
-
-### `clinical_trials_search`
-
-Searches ClinicalTrials.gov for clinical studies.
-
-Returns structured information about matching studies, including identifiers and study information.
-
----
-
-### `healthcare_research`
-
-Performs a multi-source research search.
-
-The workflow is:
-
-Research Question
-       |
-       +------> PubMed
-       |
-       +------> ClinicalTrials.gov
-       |
-       v
-Combined Evidence Package
-
-The tool also reports source failures without discarding successful results from other sources.
-
----
-
-## 6. MCP Prompt
-
-### `research_brief`
-
-The `research_brief` prompt provides a structured framework for synthesizing retrieved healthcare research.
-
-It asks for:
+The prompt generates a structured healthcare research brief containing:
 
 1. Research question
 2. Key findings
@@ -192,348 +123,633 @@ It asks for:
 7. Limitations
 8. Sources requiring further review
 
-The prompt also instructs the AI to:
-
-- Avoid inventing findings.
-- Distinguish evidence from interpretation.
-- Avoid unsupported causal claims.
-- Identify unavailable information.
-- Preserve PMID and NCT identifiers.
-- Avoid individualized medical advice.
+The prompt explicitly instructs the consuming AI system to distinguish retrieved evidence from interpretation and avoid inventing unavailable findings.
 
 ---
 
-## 7. MCP Resource
+### Resource
 
-### `healthcare://research-guidelines`
+The server exposes:
 
-Provides research methodology and safety guidance to an MCP client.
+```text
+healthcare://research-guidelines
+```
 
-The resource covers:
+The resource contains guidelines covering:
 
 - Evidence handling
-- Source identifiers
+- PMID and NCT preservation
+- Distinguishing evidence from interpretation
 - Research limitations
-- Uncertainty
-- Clinical safety boundaries
-- The distinction between research information and professional medical judgment
+- Clinical trial status changes
+- Independent review
+- Medical safety
 
 ---
 
-## 8. Multi-Source Research Workflow
+## Architecture
 
-A typical workflow looks like:
-
-User:
-"What is the current evidence for AI-assisted ECG interpretation?"
-                         |
-                         v
-                MCP Client / AI
-                         |
-                         v
-              healthcare_research
-                         |
-              +----------+----------+
-              |                     |
-              v                     v
-           PubMed          ClinicalTrials.gov
-              |                     |
-              +----------+----------+
-                         |
-                         v
-                Evidence Package
-                         |
-                         v
-                  research_brief
-                         |
-                         v
-                Structured Research
-                     Brief
-
-This architecture keeps source retrieval separate from AI interpretation.
-
----
-
-## 9. Validation
-
-Search inputs are validated before external requests are made.
-
-Current validation includes:
-
-- Query must be a string.
-- Query cannot be empty.
-- `max_results` must be an integer.
-- `max_results` must be at least `1`.
-- `max_results` cannot exceed `20`.
-
-This prevents invalid requests from unnecessarily reaching external APIs.
-
----
-
-## 10. Error Handling
-
-External research APIs can temporarily fail or return unexpected responses.
-
-The server uses controlled `ResearchSourceError` exceptions for external-source failures.
-
-For multi-source research, a failure in one source does not automatically discard results from another source.
-
-For example:
-
-PubMed              -> SUCCESS
-ClinicalTrials.gov  -> ERROR
+```text
+                         User / AI Application
+                                  |
+                                  v
+                         +----------------+
+                         |   MCP Client   |
+                         +----------------+
+                                  |
+                           MCP Protocol
+                                  |
+                                  v
+                    +--------------------------+
+                    |    Healthcare MCP Server  |
+                    +--------------------------+
+                       |        |        |
+                       |        |        |
+                    Tools     Prompt   Resource
                        |
                        v
-                Partial Results
-                + Source Error
+              +-----------------------+
+              | Research Workflow     |
+              +-----------------------+
+                   |             |
+                   v             v
+              +---------+   +----------------+
+              | PubMed  |   | ClinicalTrials |
+              +---------+   +----------------+
+                   |             |
+                   +------┬------+
+                          |
+                          v
+                  Structured Evidence
+                          |
+                          v
+                    MCP Client /
+                    Web Interface
+```
 
-This allows the client to distinguish between:
-
-- Successful evidence retrieval.
-- Partial retrieval.
-- Source failures.
-
----
-
-## 11. Testing
-
-The project includes automated tests for:
-
-- Input validation.
-- Combined research workflow.
-- Partial source failures.
-- MCP tool discovery.
-- MCP prompt discovery.
-- MCP resource discovery.
-- MCP resource retrieval.
-
-Run the complete test suite:
-
-python -m pytest -q
-
-The project uses both unit-level tests and MCP integration tests.
+The web interface and MCP interface use the same underlying research functions.
 
 ---
 
-## 12. Project Structure
+## Why MCP?
 
+The project could technically be implemented using ordinary Python functions and HTTP endpoints alone.
+
+MCP adds a standardized interface between an AI application and the research capabilities.
+
+Instead of building a separate custom integration for every AI client, the capabilities are exposed through MCP so compatible clients can discover and invoke:
+
+- Tools
+- Prompts
+- Resources
+
+Conceptually:
+
+```text
+AI Application
+      |
+      v
+  MCP Client
+      |
+      v
+  MCP Server
+      |
+      +---- Tools
+      |
+      +---- Prompts
+      |
+      +---- Resources
+      |
+      v
+External Research APIs
+```
+
+This separation makes the research capabilities reusable by different MCP-compatible AI applications.
+
+---
+
+## Research Workflow
+
+For a query such as:
+
+```text
+artificial intelligence ECG
+```
+
+the multi-source workflow performs the following:
+
+```text
+User Research Query
+        |
+        v
+Input Validation
+        |
+        +----------------------+
+        |                      |
+        v                      v
+     PubMed             ClinicalTrials.gov
+        |                      |
+        |                Candidate Studies
+        |                      |
+        |                Relevance Ranking
+        |                      |
+        +----------+-----------+
+                   |
+                   v
+          Combined Evidence
+                   |
+                   v
+          Structured JSON
+```
+
+The system does not claim that retrieved evidence proves causation unless the retrieved research supports such a conclusion.
+
+---
+
+## Project Structure
+
+```text
 healthcare-research-mcp/
-|
+│
+├── demo.py
+├── web_app.py
+├── requirements.txt
+├── README.md
+├── .gitignore
+│
+├── frontend/
+│   ├── index.html
+│   ├── style.css
+│   └── app.js
+│
 ├── server/
 │   ├── __init__.py
 │   ├── server.py
-│   |
+│   │
 │   ├── tools/
 │   │   ├── __init__.py
 │   │   ├── pubmed.py
 │   │   ├── clinical_trials.py
 │   │   └── research.py
-│   |
+│   │
 │   ├── prompts/
 │   │   ├── __init__.py
 │   │   └── research.py
-│   |
+│   │
 │   ├── resources/
 │   │   ├── __init__.py
 │   │   └── guidelines.py
-│   |
+│   │
 │   └── utils/
 │       ├── errors.py
 │       └── validation.py
-|
-├── tests/
-│   ├── test_client.py
-│   ├── test_mcp_server.py
-│   ├── test_research.py
-│   └── test_validation.py
-|
-├── .gitignore
-├── requirements.txt
-└── README.md
+│
+└── tests/
+    ├── test_client.py
+    ├── test_mcp_server.py
+    ├── test_research.py
+    └── test_validation.py
+```
 
 ---
 
-## 13. Installation
+## Technologies Used
+
+- Python 3.11+
+- Model Context Protocol
+- FastMCP
+- FastAPI
+- Uvicorn
+- Requests
+- PubMed / NCBI APIs
+- ClinicalTrials.gov API
+- HTML
+- CSS
+- JavaScript
+- Pytest
+
+---
+
+## Requirements
+
+Python 3.11 or newer is recommended.
+
+Install the dependencies with:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+The main dependencies are:
+
+```text
+mcp<2
+requests
+fastapi
+uvicorn
+```
+
+---
+
+## Setup
 
 Clone the repository:
 
+```bash
 git clone https://github.com/Anubhab36/healthcare-research-mcp.git
 cd healthcare-research-mcp
+```
 
 Create a virtual environment:
 
+```bash
 python3 -m venv venv
+```
 
 Activate it:
 
+### Linux / ChromeOS
+
+```bash
 source venv/bin/activate
+```
+
+### Windows
+
+```powershell
+venv\Scripts\activate
+```
 
 Install dependencies:
 
-pip install -r requirements.txt
-
-Install testing dependencies if required:
-
-pip install pytest
+```bash
+python -m pip install -r requirements.txt
+```
 
 ---
 
-## 14. Running the MCP Server
+## Running the MCP Server
 
-The server communicates through MCP stdio transport.
+From the project root:
 
-Run:
-
+```bash
 python -m server.server
+```
 
-The server is intended to be launched by an MCP client rather than accessed through a normal browser.
+The server communicates using MCP over standard input/output.
+
+The server can then be connected to by an MCP-compatible client.
 
 ---
 
-## 15. Running the MCP Test Client
+## Running the MCP Demo
 
-The repository includes a test client that starts the MCP server and communicates with it over stdio.
+A standalone demonstration client is included in:
+
+```text
+demo.py
+```
 
 Run:
 
-python tests/test_client.py
+```bash
+python demo.py
+```
 
-The client demonstrates:
+The demo:
 
-- MCP initialization.
-- Tool discovery.
-- Prompt discovery.
-- Resource discovery.
-- Resource retrieval.
-- Healthcare research tool invocation.
-
----
-
-## 16. Example Research Queries
+1. Starts the MCP server
+2. Establishes an MCP connection
+3. Discovers available tools
+4. Discovers available prompts
+5. Discovers available resources
+6. Executes the multi-source healthcare research tool
+7. Retrieves PubMed results
+8. Retrieves ClinicalTrials.gov results
+9. Displays sample evidence
+10. Exits after completing the demonstration
 
 Example:
 
+```text
+============================================================
+ Healthcare Research MCP Server
+============================================================
+
+Connecting to MCP server...
+✓ MCP connection established
+
+[1] Available Tools
+    ✓ pubmed_search
+    ✓ pubmed_get_article
+    ✓ clinical_trials_search
+    ✓ healthcare_research
+
+[2] Available Prompts
+    ✓ research_brief
+
+[3] Available Resources
+    ✓ healthcare://research-guidelines
+
+[4] Research Query
+    artificial intelligence ECG
+
+[5] Running healthcare research...
+    ✓ PubMed: 3 results
+    ✓ ClinicalTrials.gov: 3 results
+
+[6] Sample PubMed Evidence
+    PMID: 42646568
+    Title: From Automated ECG Interpretation to Multimodal Cardiovascular Intelligence...
+
+[7] Sample Clinical Trial
+    NCT ID: NCT05942859
+    Title: Applying Artificial Intelligence to the 12 Lead ECG for the Diagnosis of Pulmonary Hypertension...
+    Status: ENROLLING_BY_INVITATION
+
+============================================================
+ MCP demonstration completed successfully
+============================================================
+```
+
+---
+
+## Running the Web Interface
+
+The project also includes a lightweight browser-based interface.
+
+Start the application with:
+
+```bash
+python -m uvicorn web_app:app --host 0.0.0.0 --port 8000
+```
+
+Then open:
+
+```text
+http://localhost:8000
+```
+
+The web interface provides a user-friendly way to submit research queries and view evidence without directly interacting with the MCP protocol.
+
+The frontend communicates with the FastAPI backend, which uses the same healthcare research functionality exposed by the MCP server.
+
+---
+
+## Web Interface Architecture
+
+```text
+Browser
+   |
+   v
+frontend/
+   |
+   v
+FastAPI
+(web_app.py)
+   |
+   v
+Research Workflow
+   |
+   +--------+---------+
+   |                  |
+   v                  v
+PubMed          ClinicalTrials.gov
+   |                  |
+   +--------+---------+
+            |
+            v
+       Research Results
+```
+
+The frontend is intentionally lightweight. It acts as a demonstration and human-facing interface rather than replacing the MCP interface.
+
+---
+
+## Testing
+
+The project includes automated tests for:
+
+- Input validation
+- Research workflow behavior
+- MCP tool discovery
+- MCP prompt discovery
+- MCP resource discovery
+- MCP client behavior
+
+Run the complete test suite with:
+
+```bash
+python -m pytest -q
+```
+
+Current test status:
+
+```text
+9 passed
+```
+
+---
+
+## Validation
+
+Research queries and result limits are validated before external API requests are performed.
+
+This helps prevent invalid requests from propagating into the research workflow.
+
+---
+
+## Error Handling
+
+External research APIs can fail for reasons outside the application's control.
+
+The project therefore handles:
+
+- HTTP request failures
+- Invalid JSON responses
+- Missing research fields
+- Source-specific failures
+- Invalid user input
+
+The research workflow can distinguish between successful source retrieval and unavailable source information rather than silently inventing results.
+
+---
+
+## Evidence Handling
+
+The project follows several evidence-handling principles:
+
+- Prefer retrieved source information over assumptions.
+- Preserve PMID identifiers for PubMed evidence.
+- Preserve NCT identifiers for clinical trial evidence.
+- Clearly distinguish retrieved evidence from interpretation.
+- Report when an abstract or other field is unavailable.
+- Do not invent unavailable research findings.
+- Do not automatically treat retrieved research as proof of causation.
+
+Search results should not be assumed to represent the complete scientific literature.
+
+Clinical trial status can also change over time.
+
+---
+
+## Medical Safety
+
+This project is intended for **research assistance and evidence retrieval**.
+
+It is not a substitute for:
+
+- Professional medical judgment
+- Clinical diagnosis
+- Individualized treatment decisions
+- Regulatory decision-making
+
+Retrieved research should be independently reviewed before being used for clinical or regulatory decisions.
+
+The system does not provide individualized medical advice.
+
+---
+
+## Limitations
+
+### Literature Coverage
+
+The system currently focuses on:
+
+- PubMed
+- ClinicalTrials.gov
+
+It does not automatically search every biomedical database or scientific publisher.
+
+### Search Completeness
+
+Search results depend on the underlying APIs and query formulation.
+
+A returned set of studies should not be interpreted as a complete systematic review.
+
+### Relevance Ranking
+
+ClinicalTrials.gov results receive lightweight local relevance ranking based primarily on query terms appearing in study titles and conditions.
+
+This improves basic relevance but is not equivalent to a sophisticated semantic retrieval system.
+
+### Abstract Availability
+
+Some PubMed records may not contain an available abstract.
+
+The application reports unavailable fields rather than generating missing research content.
+
+### Clinical Trial Status
+
+Clinical trial status may change after retrieval.
+
+### No LLM Synthesis
+
+The core research workflow retrieves and structures evidence. It does not require an LLM to generate or alter the underlying research data.
+
+The `research_brief` MCP prompt can be supplied to an MCP-compatible AI application for structured synthesis.
+
+---
+
+## Security Considerations
+
+The current project is designed primarily as a local research application.
+
+For production deployment, additional security controls would be appropriate, including:
+
+- Authentication
+- Authorization
+- Rate limiting
+- Stronger input restrictions
+- Secret management
+- Request logging
+- Monitoring
+- Access control
+- Secure remote MCP transport
+
+The application should follow the principle of least privilege when connected to external systems.
+
+---
+
+## Future Improvements
+
+Potential future enhancements include:
+
+- Additional biomedical research sources
+- More advanced semantic relevance ranking
+- Research history and saved searches
+- Citation export
+- Advanced filtering
+- LLM-assisted evidence synthesis
+- Evidence-quality scoring
+- Systematic-review workflows
+- Authentication and authorization
+- Production monitoring
+- Automated CI/CD
+- Public deployment
+
+These are future extensions rather than required components of the current implementation.
+
+---
+
+## Project Status
+
+The current implementation includes:
+
+- MCP server
+- Four MCP tools
+- One MCP prompt
+- One MCP resource
+- PubMed integration
+- ClinicalTrials.gov integration
+- Multi-source research workflow
+- Clinical trial relevance ranking
+- Input validation
+- Error handling
+- Automated tests
+- Standalone MCP demo client
+- Lightweight web interface
+- GitHub repository documentation
+
+Current automated test result:
+
+```text
+9 passed
+```
+
+Public deployment is not currently included. The web interface is intended to run locally.
+
+---
+
+## Example Research Query
+
+```text
 artificial intelligence ECG
+```
 
-Other example queries include:
+The system can retrieve biomedical literature and clinical trial information related to the query while preserving source identifiers for further investigation.
 
-AI assisted medical imaging
+Example source identifiers:
 
-machine learning cardiac diagnosis
-
-artificial intelligence radiology
-
-deep learning ECG analysis
-
-machine learning clinical decision support
-
-These queries can be used with the multi-source research workflow.
+```text
+PMID: 42646568
+NCT ID: NCT05942859
+```
 
 ---
 
-## 17. Healthcare Safety Considerations
+## Disclaimer
 
-This project is intended for healthcare research and information retrieval.
+This project is an educational and research-oriented software system.
 
-It is not intended to:
+It provides structured access to biomedical research information and should not be used as a substitute for qualified medical, scientific, or regulatory expertise.
 
-- Diagnose patients.
-- Recommend individualized treatment.
-- Replace medical professionals.
-- Make autonomous clinical decisions.
-
-Retrieved research should be independently reviewed before being used for clinical, regulatory, or other high-impact decisions.
-
-Search results may be incomplete, and clinical trial information can change over time.
-
----
-
-## 18. Design Principles
-
-The project follows several design principles.
-
-### Evidence before interpretation
-
-The server retrieves source information before any AI synthesis occurs.
-
-### Source traceability
-
-Research identifiers such as PMID and NCT identifiers are preserved where available.
-
-### Separation of responsibilities
-
-The MCP server handles:
-
-Data retrieval
-Validation
-Structuring
-Source error handling
-
-The consuming AI application can handle:
-
-Interpretation
-Comparison
-Summarization
-Research synthesis
-
-### Graceful degradation
-
-Failure of one research source should not automatically eliminate successful results from another source.
-
----
-
-## 19. Technologies Used
-
-- Python
-- Model Context Protocol (MCP)
-- FastMCP
-- PubMed / NCBI
-- ClinicalTrials.gov API
-- pytest
-- JSON
-- stdio transport
-
----
-
-## 20. Future Improvements
-
-Potential future improvements include:
-
-- Additional biomedical databases.
-- Cross-source deduplication.
-- Citation ranking.
-- Date and publication filters.
-- Study-type filtering.
-- Evidence quality scoring.
-- Full-text article retrieval where available.
-- More advanced research synthesis.
-- Persistent research sessions.
-- MCP client integrations.
-- Additional automated integration tests.
-
----
-
-## 21. Project Goal
-
-The primary goal of this project is to demonstrate how Model Context Protocol can be used to build a reusable AI interface for healthcare research.
-
-Rather than building a single-purpose healthcare chatbot, the project provides standardized MCP capabilities that an AI client can discover and use as needed.
-
-The result is a modular healthcare research infrastructure that separates:
-
-Research Sources
-       |
-       v
-MCP Tools
-       |
-       v
-Structured Evidence
-       |
-       v
-AI Interpretation
+Always independently review the underlying research sources before making consequential decisions.
 
 ---
 
 ## License
 
-This project is intended for educational and research purposes.
+This project is currently intended as an educational and portfolio project.
+
+Add a formal open-source license if the repository is intended to be distributed or reused under specific licensing terms.
