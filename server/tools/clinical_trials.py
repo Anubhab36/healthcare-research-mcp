@@ -1,3 +1,5 @@
+import re
+
 import requests
 
 from server.utils.validation import validate_query
@@ -7,6 +9,47 @@ from server.utils.errors import ResearchSourceError
 CLINICAL_TRIALS_API_URL = (
     "https://clinicaltrials.gov/api/v2/studies"
 )
+
+
+def _query_terms(query: str) -> list[str]:
+    """
+    Extract meaningful search terms from a query.
+    """
+
+    return [
+        term.lower()
+        for term in re.findall(r"[A-Za-z0-9]+", query)
+        if len(term) > 2
+    ]
+
+
+def _relevance_score(
+    query: str,
+    title: str,
+    conditions: list[str],
+) -> int:
+    """
+    Calculate a lightweight relevance score based
+    on query terms appearing in study title or conditions.
+    """
+
+    terms = _query_terms(query)
+
+    searchable_text = " ".join(
+        [title] + conditions
+    ).lower()
+
+    score = 0
+
+    for term in terms:
+
+        if term in title.lower():
+            score += 3
+
+        elif term in searchable_text:
+            score += 1
+
+    return score
 
 
 def search_clinical_trials(
@@ -25,27 +68,37 @@ def search_clinical_trials(
         max_results,
     )
 
+    # Retrieve a few additional records so that
+    # relevance filtering has enough candidates.
+    page_size = min(
+        max_results * 3,
+        20,
+    )
+
     response = requests.get(
         CLINICAL_TRIALS_API_URL,
         params={
             "query.term": query,
-            "pageSize": max_results,
+            "pageSize": page_size,
             "format": "json",
         },
         timeout=30,
     )
 
     try:
+
         response.raise_for_status()
         data = response.json()
 
     except requests.RequestException as exc:
+
         raise ResearchSourceError(
             "ClinicalTrials.gov",
             f"Search request failed: {exc}",
         ) from exc
 
     except ValueError as exc:
+
         raise ResearchSourceError(
             "ClinicalTrials.gov",
             "Search returned invalid JSON.",
@@ -80,9 +133,25 @@ def search_clinical_trials(
             {}
         )
 
-        conditions = protocol.get(
+        conditions_module = protocol.get(
             "conditionsModule",
             {}
+        )
+
+        title = identification.get(
+            "briefTitle",
+            ""
+        )
+
+        conditions = conditions_module.get(
+            "conditions",
+            []
+        )
+
+        score = _relevance_score(
+            query=query,
+            title=title,
+            conditions=conditions,
         )
 
         results.append(
@@ -91,10 +160,7 @@ def search_clinical_trials(
                     "nctId",
                     ""
                 ),
-                "title": identification.get(
-                    "briefTitle",
-                    ""
-                ),
+                "title": title,
                 "status": status.get(
                     "overallStatus",
                     ""
@@ -103,11 +169,19 @@ def search_clinical_trials(
                     "studyType",
                     ""
                 ),
-                "conditions": conditions.get(
-                    "conditions",
-                    []
-                ),
+                "conditions": conditions,
+                "_relevance_score": score,
             }
         )
 
-    return results
+    results.sort(
+        key=lambda item: item["_relevance_score"],
+        reverse=True,
+    )
+
+    # Remove the internal scoring field before
+    # returning results to the MCP client.
+    for result in results:
+        result.pop("_relevance_score", None)
+
+    return results[:max_results]
