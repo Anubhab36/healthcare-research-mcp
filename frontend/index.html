@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <title>Healthcare Research MCP</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+<header class="header">
+    <div>
+        <div class="brand-row">
+            <h1>Healthcare Research MCP</h1>
+            <span class="mcp-badge">MCP POWERED</span>
+        </div>
+
+        <p>
+            Multi-source biomedical research platform
+        </p>
+    </div>
+
+    <div class="status">
+        <span id="statusDot" class="status-dot"></span>
+        <span id="statusText">Checking API...</span>
+    </div>
+</header>
+
+
+<main class="container">
+
+    <section class="search-card">
+
+        <label for="researchQuery">
+            Research Question
+        </label>
+
+        <textarea
+            id="researchQuery"
+            placeholder="e.g. artificial intelligence ECG"
+            rows="3"
+        ></textarea>
+
+        <div class="search-row">
+
+            <div class="results-control">
+                <label for="maxResults">
+                    Results per source
+                </label>
+
+                <select id="maxResults">
+                    <option value="3">3</option>
+                    <option value="5" selected>5</option>
+                    <option value="10">10</option>
+                </select>
+            </div>
+
+            <button id="searchButton">
+                Search Research
+            </button>
+
+        </div>
+
+        <p id="errorMessage" class="error hidden"></p>
+
+    </section>
+
+
+    <section class="architecture-card">
+
+        <div class="architecture-title">
+            <div>
+                <h2>How this works</h2>
+                <p>
+                    One research request, multiple healthcare sources.
+                </p>
+            </div>
+        </div>
+
+        <div class="architecture-flow">
+
+            <div class="architecture-node">
+                <strong>AI / Web Client</strong>
+                <span>Research request</span>
+            </div>
+
+            <div class="arrow">→</div>
+
+            <div class="architecture-node highlighted">
+                <strong>MCP Server</strong>
+                <span>Tools & research workflow</span>
+            </div>
+
+            <div class="arrow">→</div>
+
+            <div class="architecture-sources">
+                <div class="mini-source">PubMed</div>
+                <div class="mini-source">ClinicalTrials.gov</div>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <section id="summarySection" class="summary hidden">
+
+        <div class="summary-card">
+            <span>PubMed</span>
+            <strong id="pubmedCount">0</strong>
+            <small>articles</small>
+        </div>
+
+        <div class="summary-card">
+            <span>ClinicalTrials.gov</span>
+            <strong id="trialCount">0</strong>
+            <small>studies</small>
+        </div>
+
+        <div class="summary-card">
+            <span>Sources</span>
+            <strong id="sourceStatus">2</strong>
+            <small id="sourceStatusLabel">connected</small>
+        </div>
+
+    </section>
+
+
+    <section
+        id="partialWarning"
+        class="partial-warning hidden"
+    >
+        <strong>Partial research results</strong>
+        <span id="partialWarningText"></span>
+    </section>
+
+
+    <section id="resultsSection" class="results hidden">
+
+        <div class="section-header">
+            <div>
+                <h2>Research Evidence</h2>
+                <p id="queryLabel"></p>
+            </div>
+        </div>
+
+
+        <div class="result-columns">
+
+            <div class="result-panel">
+
+                <div class="panel-header">
+                    <div>
+                        <h3>PubMed</h3>
+                        <span class="panel-description">
+                            Biomedical literature
+                        </span>
+                    </div>
+
+                    <span class="source-badge">
+                        RESEARCH
+                    </span>
+                </div>
+
+                <div id="pubmedResults"></div>
+
+            </div>
+
+
+            <div class="result-panel">
+
+                <div class="panel-header">
+                    <div>
+                        <h3>ClinicalTrials.gov</h3>
+                        <span class="panel-description">
+                            Registered clinical studies
+                        </span>
+                    </div>
+
+                    <span class="source-badge">
+                        TRIALS
+                    </span>
+                </div>
+
+                <div id="trialResults"></div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<footer>
+    Healthcare Research MCP Server · Research information only
+</footer>
+
+
+<script src="/static/app.js"></script>
+
+</body>
+</html>
